@@ -1,3 +1,5 @@
+using System.Net;
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text;
 using Newtonsoft.Json;
@@ -9,11 +11,25 @@ namespace StudentApp.Console.Service.Services;
 
 public class StudentService : IStudentService
 {
-    public async Task<IEnumerable<Student>> GetAllAsync()
+    public async Task<IEnumerable<Student>> GetAllAsync(string login, string password)
     {
         using (HttpClient client = new HttpClient())
         {
-            return await client.GetFromJsonAsync<IEnumerable<Student>>(AppSettings.BASE_URL + "students");
+            string joined = login + ":" + password;
+            string encoded = Convert.ToBase64String(ASCIIEncoding.ASCII.GetBytes(joined));
+            
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Basic", encoded);
+            
+            var response = await client.GetAsync(AppSettings.BASE_URL + "students");
+
+            if (response.IsSuccessStatusCode)
+            {
+                var students = JsonConvert.DeserializeObject<IEnumerable<Student>>(await response.Content.ReadAsStringAsync());
+                
+                return students;
+            }
+
+            return null;
         }
     }
 

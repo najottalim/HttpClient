@@ -4,7 +4,7 @@ namespace StudentApp.Console.Service.Interfaces;
 
 public interface IStudentService
 {
-    Task<IEnumerable<Student>> GetAllAsync();
+    Task<IEnumerable<Student>> GetAllAsync(string login, string password);
     Task<Student> GetAsync(long id);
     Task<Student> CreateAsync(StudentDto dto);
     Task<Student> UpdateAsync(long id, StudentDto dto);

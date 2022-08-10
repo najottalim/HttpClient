@@ -1,3 +1,4 @@
+using System.Text;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using StudentApp.Api.Data;
@@ -13,21 +14,46 @@ public class StudentsController : ControllerBase
 {
     private readonly AppDbContext dbContext;
     private readonly IWebHostEnvironment env;
-    public StudentsController(AppDbContext dbContext, IWebHostEnvironment env)
+    private readonly IConfiguration config;
+    public StudentsController(AppDbContext dbContext, 
+        IWebHostEnvironment env,
+        IConfiguration config)
     {
         this.dbContext = dbContext;
         this.env = env;
+        this.config = config;
     }
     
     [HttpGet]
     public async Task<IActionResult> GetStudents()
-    {
-        var students = await dbContext.Students
-            .Include(p => p.Image)
-            .Include(p => p.Passport)
-            .ToListAsync();
+    { 
+        string token = HttpContext.Request.Headers?.Authorization.ToString();
+
+        token = token.Split().Length == 2 ? token.Split()[1] : string.Empty;
         
-        return Ok(students);
+        if (string.IsNullOrEmpty(token))
+        {
+            return Unauthorized("Auth yoq");
+        }
+
+        string[] result = ASCIIEncoding.ASCII.GetString(Convert.FromBase64String(token)).Split(':');
+        string login = result[0];
+        string password = result[1];
+
+        string orgLogin = config.GetSection("Basic:Login").Value;
+        string orgPassword = config.GetSection("Basic:Password").Value;
+
+        if (orgLogin == login && orgPassword == password)
+        {
+            var students = await dbContext.Students
+                .Include(p => p.Image)
+                .Include(p => p.Passport)
+                .ToListAsync();
+        
+            return Ok(students);
+        }
+
+        return Unauthorized("Login or password is incorrect");
     }
 
     [HttpGet]
